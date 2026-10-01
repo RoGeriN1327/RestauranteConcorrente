@@ -22,11 +22,14 @@ public sealed class Restaurante
         Log.Escrever("Gerente", $"abrindo o restaurante com {_quantidadeCozinheiros} cozinheiro(s)");
 
         using var fila = new BlockingCollection<Pedido>(boundedCapacity: CapacidadeFila);
+        var estoque = new Estoque();
+        var cozinha = new Cozinha();
+        using var balcao = new Balcao();
+        var garcom = new Garcom("Garçom", balcao);
 
         var contadorPedidos = 0;
         Func<int> proximoNumero = () => Interlocked.Increment(ref contadorPedidos);
 
-        // Divide os 60 pedidos entre os dois atendentes. Se o total for ímpar, o primeiro gera a mais.
         var pedidosA = (TotalPedidos + 1) / 2;
         var pedidosB = TotalPedidos / 2;
 
@@ -40,10 +43,11 @@ public sealed class Restaurante
         };
 
         var cozinheiros = Enumerable.Range(1, _quantidadeCozinheiros)
-            .Select(i => new Cozinheiro($"Cozinheiro {i}", fila))
+            .Select(i => new Cozinheiro($"Cozinheiro {i}", fila, estoque, cozinha, balcao))
             .ToArray();
 
         var tarefasCozinheiros = cozinheiros.Select(c => c.ExecutarAsync()).ToArray();
+        var tarefaGarcom = garcom.ExecutarAsync();
 
         // CompleteAdding só pode ser chamado depois que AMBOS os atendentes terminarem,
         // senão o segundo tenta Add em uma coleção já marcada e lança InvalidOperationException.
@@ -52,6 +56,19 @@ public sealed class Restaurante
         Log.Escrever("Gerente", "atendentes encerraram; fila fechada para novas entradas");
 
         await Task.WhenAll(tarefasCozinheiros);
-        Log.Escrever("Gerente", $"serviço encerrado — {contadorPedidos} pedidos processados");
+        Log.Escrever("Gerente", "cozinheiros encerraram; chamando garçom para esvaziar o balcão");
+
+        garcom.Encerrar();
+        await tarefaGarcom;
+
+        ImprimirResumo(estoque, contadorPedidos);
+    }
+
+    private static void ImprimirResumo(Estoque estoque, int totalPedidos)
+    {
+        var niveis = estoque.Snapshot();
+        var linha = string.Join(" | ", niveis.Select(kv => $"{kv.Key} {kv.Value}"));
+        Log.Escrever("Gerente", $"estoque final: {linha}");
+        Log.Escrever("Gerente", $"serviço encerrado — {totalPedidos} pedidos recebidos");
     }
 }

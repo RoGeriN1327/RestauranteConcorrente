@@ -18,21 +18,25 @@ dotnet run -- 1            # 1 cozinheiro
 dotnet run -- 8            # 8 cozinheiros
 ```
 
-## Estado atual — Entrega 1 (28/09)
+## Estado atual — Entrega 2 (01/10)
 
-Esta etapa cobre o esqueleto:
+Além do esqueleto da Entrega 1, agora os cozinheiros disputam recursos
+compartilhados sem corromper dados e sem travar.
 
-| Requisito | Onde está |
-|-----------|-----------|
-| 2 atendentes geram 60 pedidos aleatórios (Tasks produtoras) | `Atores/Atendente.cs` |
-| Fila `BlockingCollection<Pedido>` capacidade 10 | `Restaurante.cs` |
-| N cozinheiros consumindo em paralelo (Tasks consumidoras) | `Atores/Cozinheiro.cs` |
-| Log com horário e autor do evento | `Infra/Log.cs` |
+| Requisito | Ferramenta | Onde está |
+|-----------|------------|-----------|
+| 2 atendentes geram 60 pedidos aleatórios | Tasks produtoras | `Atores/Atendente.cs` |
+| Fila com capacidade 10 (atendente espera quando cheia) | `BlockingCollection<Pedido>` | `Restaurante.cs` |
+| N cozinheiros consumindo em paralelo | Tasks consumidoras | `Atores/Cozinheiro.cs` |
+| No máximo 2 pratos no forno ao mesmo tempo | `SemaphoreSlim(2)` | `Infra/Cozinha.cs` |
+| Tábua e faca pegas sempre na ordem Tábua → Faca | `lock` | `Atores/Cozinheiro.cs` |
+| Estoque atômico, sem valores negativos | `ConcurrentDictionary` + lock | `Infra/Estoque.cs` |
+| Balcão + sino acordando o garçom | `ConcurrentQueue` + `AutoResetEvent` | `Infra/Balcao.cs`, `Atores/Garcom.cs` |
+| Log de cada evento | `Console.WriteLine` thread-safe | `Infra/Log.cs` |
 
-**Ainda não implementado** (vem nas Entregas 2 e 3): fornos (`SemaphoreSlim`),
-tábua e faca (`lock`), estoque (`ConcurrentDictionary`), balcão + sino (`ConcurrentQueue` +
-`AutoResetEvent`), garçom, caixa, gerente (`CancellationTokenSource`), relatório
-final e menu com demonstrações de bug.
+**Ainda não implementado** (Entrega 3): caixa (`lock` + `AddOrUpdate`), gerente
+(`CancellationTokenSource`), relatório final com verificações automáticas, menu
+com modo seguro + 3 demonstrações de bug + comparação 1 × N cozinheiros.
 
 ## Ferramentas de IA
 
