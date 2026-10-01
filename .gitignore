@@ -1,0 +1,18 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.vscode/
+*.swp
+
+## Rider / VS
+.idea/
+*.DotSettings.user
+
+## Build artifacts
+*.dll
+*.pdb
+*.exe
+publish/
