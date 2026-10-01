@@ -7,7 +7,6 @@ nas próximas entregas, um garçom entrega e um gerente fecha o estabelecimento.
 ## Integrantes
 
 - Rogger Martins Guimarães
-- *(colocar nome do segundo integrante)*
 
 ## Como executar
 
