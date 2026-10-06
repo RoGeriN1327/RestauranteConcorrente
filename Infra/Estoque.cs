@@ -14,12 +14,17 @@ public sealed class Estoque
     private readonly ConcurrentDictionary<string, int> _niveis;
     private readonly object _trava = new();
 
-    public Estoque()
+    public Estoque(bool inseguro = false)
     {
+        Inseguro = inseguro;
         _niveis = new ConcurrentDictionary<string, int>(
             _ingredientesConhecidos.Select(nome =>
                 new KeyValuePair<string, int>(nome, QuantidadeInicial)));
     }
+
+    // Modo inseguro: o cozinheiro usa Verificar no início do preparo e Descontar no fim,
+    // em vez de TentarReservar.
+    public bool Inseguro { get; }
 
     // ConcurrentDictionary garante acesso seguro a cada entrada, mas verificar e descontar
     // são dois passos: sem o lock externo, dois cozinheiros podem ver "há 1 unidade" ao mesmo
@@ -41,6 +46,21 @@ public sealed class Estoque
                 _niveis[nome]--;
             }
             return true;
+        }
+    }
+
+    // BUG proposital (passo 1): só olha o estoque, sem reservar nada.
+    public bool Verificar(IReadOnlyList<string> ingredientes) =>
+        ingredientes.All(nome => _niveis[nome] >= 1);
+
+    // BUG proposital (passo 2): cada desconto isolado é atômico (AddOrUpdate), mas entre
+    // Verificar e Descontar passa o tempo inteiro do preparo. Vários cozinheiros verificam
+    // a mesma última unidade de queijo, todos cozinham e todos descontam: estoque negativo.
+    public void Descontar(IReadOnlyList<string> ingredientes)
+    {
+        foreach (var nome in ingredientes)
+        {
+            _niveis.AddOrUpdate(nome, 0, (_, atual) => atual - 1);
         }
     }
 

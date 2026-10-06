@@ -1,4 +1,5 @@
 using RestauranteConcorrente.Infra;
+using RestauranteConcorrente.Modelos;
 
 namespace RestauranteConcorrente.Atores;
 
@@ -6,6 +7,7 @@ public sealed class Garcom
 {
     private readonly string _nome;
     private readonly Balcao _balcao;
+    private readonly List<PedidoPronto> _entregues = new();
     private volatile bool _fechando;
 
     public Garcom(string nome, Balcao balcao)
@@ -13,6 +15,9 @@ public sealed class Garcom
         _nome = nome;
         _balcao = balcao;
     }
+
+    // Só o garçom escreve na lista, e o Restaurante só lê depois que a Task dele termina.
+    public IReadOnlyList<PedidoPronto> Entregues => _entregues;
 
     public Task ExecutarAsync() => Task.Run(Executar);
 
@@ -31,24 +36,26 @@ public sealed class Garcom
         while (true)
         {
             _balcao.AguardarSino();
-
-            foreach (var pronto in _balcao.DrenarTudo())
-            {
-                Log.Escrever(_nome, $"entregou {pronto.Pedido} (preparado por {pronto.Cozinheiro})");
-            }
+            EntregarTudo();
 
             if (_fechando)
             {
                 // Segunda drenagem defensiva: cobre o caso raro de um prato ter sido depositado
                 // entre a última drenagem e a verificação da flag.
-                foreach (var pronto in _balcao.DrenarTudo())
-                {
-                    Log.Escrever(_nome, $"entregou {pronto.Pedido} (preparado por {pronto.Cozinheiro})");
-                }
+                EntregarTudo();
                 break;
             }
         }
 
         Log.Escrever(_nome, "saiu de serviço");
+    }
+
+    private void EntregarTudo()
+    {
+        foreach (var pronto in _balcao.DrenarTudo())
+        {
+            _entregues.Add(pronto);
+            Log.Escrever(_nome, $"entregou {pronto.Pedido} (preparado por {pronto.Cozinheiro})");
+        }
     }
 }

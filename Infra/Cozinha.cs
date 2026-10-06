@@ -8,8 +8,8 @@ public sealed class Cozinha
     private int _fornosOcupados;
 
     // Objetos de lock separados para cada utensílio. O Cozinheiro deve pegar sempre
-    // na ordem Tabua → Faca (requisito 5): inverter essa ordem causa o deadlock que
-    // vamos demonstrar na Entrega 3.
+    // na ordem Tabua → Faca (requisito 5): inverter essa ordem causa o deadlock da
+    // opção 3 do menu.
     public object Tabua { get; } = new();
     public object Faca { get; } = new();
 
